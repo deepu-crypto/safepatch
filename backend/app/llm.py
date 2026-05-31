@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from app.schemas import AgentFinding
+
 load_dotenv(dotenv_path="backend/.env")
 
 OPENAI_LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
@@ -9,22 +11,10 @@ OPENAI_LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
 client = OpenAI()
 
 
-def analyze_issue_with_context(issue: str, retrieved_chunks: list[dict]) -> str:
+def build_context_text(retrieved_chunks: list[dict]) -> str:
     """
-    Sends the issue and retrieved code chunks to the LLM.
-
-    The LLM should explain:
-    - root cause
-    - evidence
-    - suggested fix
-    - confidence
+    Converts retrieved chunks into a readable context block for the LLM.
     """
-
-    if not issue.strip():
-        raise ValueError("Issue cannot be empty.")
-
-    if not retrieved_chunks:
-        raise ValueError("No retrieved chunks provided.")
 
     context_blocks = []
 
@@ -41,48 +31,76 @@ Code:
 """
         )
 
-    context_text = "\n".join(context_blocks)
+    return "\n".join(context_blocks)
 
-    prompt = f"""
+
+def analyze_issue_with_context(issue: str, retrieved_chunks: list[dict]) -> str:
+    """
+    Older free-text analysis function.
+
+    Kept for comparison, but our production-style flow should use
+    analyze_issue_with_context_structured().
+    """
+
+    structured_result = analyze_issue_with_context_structured(issue, retrieved_chunks)
+    return structured_result.model_dump_json(indent=2)
+
+
+def analyze_issue_with_context_structured(
+    issue: str,
+    retrieved_chunks: list[dict]
+) -> AgentFinding:
+    """
+    Sends the issue and retrieved chunks to the LLM.
+
+    Instead of free-form text, this forces the LLM to return an AgentFinding object.
+    """
+
+    if not issue.strip():
+        raise ValueError("Issue cannot be empty.")
+
+    if not retrieved_chunks:
+        raise ValueError("No retrieved chunks provided.")
+
+    context_text = build_context_text(retrieved_chunks)
+
+    system_message = """
 You are a senior backend engineer and AI code investigation assistant.
 
-Your task is to analyze the issue using ONLY the provided code context.
+You must analyze issues using ONLY the provided retrieved code context.
 
+Rules:
+- Do not invent files, functions, line numbers, or behavior.
+- Every root cause must be supported by evidence.
+- Evidence must reference file paths and line ranges from the provided context.
+- If the context is not enough, say that in limitations.
+- Prefer requiring human approval for code changes.
+- Do not touch .env file or docker-compose.yml file or requirements.txt or dockerfile files.
+"""
+
+    user_message = f"""
 Issue:
 {issue}
 
 Retrieved code context:
 {context_text}
 
-Instructions:
-1. Identify the most likely root cause.
-2. Cite evidence using file path and line numbers.
-3. Suggest a safe fix.
-4. Mention if the evidence is insufficient.
-5. Do not invent files, functions, or behavior not shown in the context.
-6.Do not touch .env file or docker-compose.yml file or requirements.txt or dockerfile files.
-
-Return the answer in this format:
-
-Root Cause:
-...
-
-Evidence:
-- ...
-
-Suggested Fix:
-...
-
-Confidence:
-Low / Medium / High
-
-Human Approval Needed:
-Yes / No
+Return a structured investigation result.
 """
 
-    response = client.responses.create(
+    response = client.responses.parse(
         model=OPENAI_LLM_MODEL,
-        input=prompt
+        input=[
+            {
+                "role": "system",
+                "content": system_message
+            },
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ],
+        text_format=AgentFinding
     )
 
-    return response.output_text
+    return response.output_parsed
