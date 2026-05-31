@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: safepatch_pgvector
+    environment:
+      POSTGRES_USER: safepatch_user
+      POSTGRES_PASSWORD: safepatch_password
+      POSTGRES_DB: safepatch_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - safepatch_pgdata:/var/lib/postgresql/data
+
+volumes:
+  safepatch_pgdata:
