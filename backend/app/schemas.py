@@ -5,9 +5,6 @@ from pydantic import BaseModel, Field
 class Evidence(BaseModel):
     """
     One piece of proof supporting the agent's answer.
-
-    Example:
-    auth_service.py lines 30-35 show email.lower() being called without checking for None.
     """
 
     file_path: str = Field(description="The file where the evidence was found.")
@@ -57,3 +54,26 @@ class AgentFinding(BaseModel):
     limitations: str = Field(
         description="Mention what context is missing or uncertain."
     )
+
+
+class GuardrailCheck(BaseModel):
+    """
+    One safety check result.
+    """
+
+    name: str
+    status: Literal["pass", "warning", "fail"]
+    message: str
+
+
+class GuardrailReport(BaseModel):
+    """
+    Final guardrail decision.
+
+    If passed is false, the agent output should not be trusted for patch generation.
+    """
+
+    passed: bool
+    risk_level: Literal["low", "medium", "high"]
+    checks: list[GuardrailCheck]
+    blocked_reason: str | None = None
