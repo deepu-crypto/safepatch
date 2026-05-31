@@ -1,0 +1,229 @@
+{
+  "total_cases": 4,
+  "passed_cases": 4,
+  "failed_cases": 0,
+  "pass_rate": 1.0,
+  "average_score": 1.0,
+  "results": [
+    {
+      "case_id": "eval_login_missing_email",
+      "issue": "Login API returns 500 when email is missing.",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "retrieved_file_hit": true,
+        "cited_file_hit": true,
+        "issue_type_match": true,
+        "approval_match": true,
+        "guardrail_match": true,
+        "evidence_present": true,
+        "keyword_match": true
+      },
+      "keyword_result": {
+        "score": 0.8,
+        "hits": [
+          "email",
+          "lower",
+          "none",
+          "validation"
+        ],
+        "misses": [
+          "400"
+        ]
+      },
+      "expected": {
+        "files": [
+          "auth_service.py",
+          "tests/test_auth_service.py"
+        ],
+        "issue_types": [
+          "bug"
+        ],
+        "requires_human_approval": true,
+        "guardrail_passed": true
+      },
+      "actual": {
+        "retrieved_files": [
+          "auth_service.py",
+          "auth_service.py",
+          "auth_service.py"
+        ],
+        "cited_files": [
+          "auth_service.py",
+          "auth_service.py"
+        ],
+        "issue_type": "bug",
+        "severity": "high",
+        "confidence": 0.9,
+        "requires_human_approval": true,
+        "guardrail_passed": true,
+        "guardrail_risk_level": "low",
+        "root_cause": "The login() function crashes when the email parameter is None, as it calls email.lower() without checking if email is valid or not.",
+        "fix_plan": "Add a validation step at the beginning of the login() function to check if the email is None and return an appropriate error response."
+      }
+    },
+    {
+      "case_id": "eval_user_profile_access",
+      "issue": "Normal user can access another user's profile data.",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "retrieved_file_hit": true,
+        "cited_file_hit": true,
+        "issue_type_match": true,
+        "approval_match": true,
+        "guardrail_match": true,
+        "evidence_present": true,
+        "keyword_match": true
+      },
+      "keyword_result": {
+        "score": 0.8,
+        "hits": [
+          "role",
+          "profile",
+          "access",
+          "requester"
+        ],
+        "misses": [
+          "authorization"
+        ]
+      },
+      "expected": {
+        "files": [
+          "user_service.py"
+        ],
+        "issue_types": [
+          "security"
+        ],
+        "requires_human_approval": true,
+        "guardrail_passed": true
+      },
+      "actual": {
+        "retrieved_files": [
+          "user_service.py",
+          "user_service.py",
+          "auth_service.py"
+        ],
+        "cited_files": [
+          "user_service.py",
+          "user_service.py"
+        ],
+        "issue_type": "security",
+        "severity": "high",
+        "confidence": 0.9,
+        "requires_human_approval": true,
+        "guardrail_passed": true,
+        "guardrail_risk_level": "low",
+        "root_cause": "The `get_user_profile` function in the `user_service.py` does not restrict access to user profiles based on the requester\u2019s role, allowing any user to access any profile.",
+        "fix_plan": "Implement access control in the `get_user_profile` function to check if the requesting user is an admin or if they own the profile before returning the profile data."
+      }
+    },
+    {
+      "case_id": "eval_negative_payment_amount",
+      "issue": "Payment API accepts negative amount values.",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "retrieved_file_hit": true,
+        "cited_file_hit": true,
+        "issue_type_match": true,
+        "approval_match": true,
+        "guardrail_match": true,
+        "evidence_present": true,
+        "keyword_match": true
+      },
+      "keyword_result": {
+        "score": 1.0,
+        "hits": [
+          "amount",
+          "negative",
+          "validation",
+          "zero"
+        ],
+        "misses": []
+      },
+      "expected": {
+        "files": [
+          "payment_service.py"
+        ],
+        "issue_types": [
+          "bug",
+          "security"
+        ],
+        "requires_human_approval": true,
+        "guardrail_passed": true
+      },
+      "actual": {
+        "retrieved_files": [
+          "payment_service.py",
+          "tests\\test_auth_service.py",
+          "auth_service.py"
+        ],
+        "cited_files": [
+          "payment_service.py"
+        ],
+        "issue_type": "bug",
+        "severity": "high",
+        "confidence": 0.85,
+        "requires_human_approval": true,
+        "guardrail_passed": true,
+        "guardrail_risk_level": "low",
+        "root_cause": "The payment processing function does not validate if the amount is negative or zero, allowing such values to be processed without errors.",
+        "fix_plan": "Implement validation to check if the amount is less than or equal to zero, returning an appropriate error response if it is."
+      }
+    },
+    {
+      "case_id": "eval_static_reset_token",
+      "issue": "Password reset token is static and does not expire.",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "retrieved_file_hit": true,
+        "cited_file_hit": true,
+        "issue_type_match": true,
+        "approval_match": true,
+        "guardrail_match": true,
+        "evidence_present": true,
+        "keyword_match": true
+      },
+      "keyword_result": {
+        "score": 1.0,
+        "hits": [
+          "reset",
+          "token",
+          "static",
+          "expire"
+        ],
+        "misses": []
+      },
+      "expected": {
+        "files": [
+          "auth_service.py"
+        ],
+        "issue_types": [
+          "security"
+        ],
+        "requires_human_approval": true,
+        "guardrail_passed": true
+      },
+      "actual": {
+        "retrieved_files": [
+          "auth_service.py",
+          "auth_service.py",
+          "auth_service.py"
+        ],
+        "cited_files": [
+          "auth_service.py"
+        ],
+        "issue_type": "security",
+        "severity": "high",
+        "confidence": 0.9,
+        "requires_human_approval": true,
+        "guardrail_passed": true,
+        "guardrail_risk_level": "low",
+        "root_cause": "The reset password functionality uses a static reset token that does not expire, allowing unauthorized access if the token is leaked.",
+        "fix_plan": "Implement a dynamic reset token generation that includes an expiration time to improve security."
+      }
+    }
+  ]
+}

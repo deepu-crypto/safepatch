@@ -1,0 +1,38 @@
+[
+  {
+    "id": "eval_login_missing_email",
+    "issue": "Login API returns 500 when email is missing.",
+    "expected_files": ["auth_service.py", "tests/test_auth_service.py"],
+    "expected_issue_types": ["bug"],
+    "expected_requires_human_approval": true,
+    "expected_guardrail_passed": true,
+    "expected_keywords": ["email", "lower", "none", "validation", "400"]
+  },
+  {
+    "id": "eval_user_profile_access",
+    "issue": "Normal user can access another user's profile data.",
+    "expected_files": ["user_service.py"],
+    "expected_issue_types": ["security"],
+    "expected_requires_human_approval": true,
+    "expected_guardrail_passed": true,
+    "expected_keywords": ["role", "profile", "authorization", "access", "requester"]
+  },
+  {
+    "id": "eval_negative_payment_amount",
+    "issue": "Payment API accepts negative amount values.",
+    "expected_files": ["payment_service.py"],
+    "expected_issue_types": ["bug", "security"],
+    "expected_requires_human_approval": true,
+    "expected_guardrail_passed": true,
+    "expected_keywords": ["amount", "negative", "validation", "zero"]
+  },
+  {
+    "id": "eval_static_reset_token",
+    "issue": "Password reset token is static and does not expire.",
+    "expected_files": ["auth_service.py"],
+    "expected_issue_types": ["security"],
+    "expected_requires_human_approval": true,
+    "expected_guardrail_passed": true,
+    "expected_keywords": ["reset", "token", "static", "expire"]
+  }
+]
