@@ -5,3 +5,5 @@ psycopg[binary]
 sqlalchemy
 openai
 pydantic
+langgraph
+typing_extensions
