@@ -1,0 +1,1 @@
+{"timestamp": "2026-05-31T23:40:08.894516Z", "event_type": "human_approval", "payload": {"issue": "Login API returns 500 when email is missing", "approved": true, "notes": "Human approved continuing to patch planning.", "risk_level": "low", "confidence": 0.9, "issue_type": "bug", "severity": "high"}}

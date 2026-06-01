@@ -9,7 +9,7 @@ if __name__ == "__main__":
     else:
         issue = "Login API returns 500 when email is missing."
 
-    print("Running SafePatch LangGraph workflow...")
+    print("Running SafePatch LangGraph workflow with human approval...")
     print(f"Issue: {issue}")
     print()
 
@@ -19,6 +19,7 @@ if __name__ == "__main__":
         "issue": issue
     })
 
+    print()
     print("=" * 80)
     print("Retrieved Chunks")
     print("=" * 80)
@@ -41,6 +42,13 @@ if __name__ == "__main__":
     print("Guardrail Report")
     print("=" * 80)
     print(final_state["guardrail_report"].model_dump_json(indent=2))
+
+    print()
+    print("=" * 80)
+    print("Human Approval Result")
+    print("=" * 80)
+    print(f"Approved: {final_state['human_approved']}")
+    print(f"Notes: {final_state['human_approval_notes']}")
 
     print()
     print("=" * 80)
