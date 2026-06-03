@@ -9,7 +9,7 @@ if __name__ == "__main__":
     else:
         issue = "Login API returns 500 when email is missing."
 
-    print("Running SafePatch LangGraph workflow with human approval...")
+    print("Running SafePatch LangGraph workflow with patch planning...")
     print(f"Issue: {issue}")
     print()
 
@@ -49,6 +49,18 @@ if __name__ == "__main__":
     print("=" * 80)
     print(f"Approved: {final_state['human_approved']}")
     print(f"Notes: {final_state['human_approval_notes']}")
+
+    print()
+    print("=" * 80)
+    print("Patch Plan")
+    print("=" * 80)
+
+    patch_plan = final_state.get("patch_plan")
+
+    if patch_plan is None:
+        print("No patch plan generated.")
+    else:
+        print(patch_plan.model_dump_json(indent=2))
 
     print()
     print("=" * 80)

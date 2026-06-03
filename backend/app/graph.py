@@ -1,13 +1,15 @@
 from typing import Any
 from typing_extensions import TypedDict
 
-# pyrefly: ignore [missing-import]
 from langgraph.graph import StateGraph, START, END
 
 from app.retrieval import search_similar_chunks
-from app.llm import analyze_issue_with_context_structured
+from app.llm import (
+    analyze_issue_with_context_structured,
+    generate_patch_plan_structured
+)
 from app.guardrails import run_guardrails
-from app.schemas import AgentFinding, GuardrailReport
+from app.schemas import AgentFinding, GuardrailReport, PatchPlan
 from app.audit import log_event
 
 
@@ -24,6 +26,7 @@ class SafePatchState(TypedDict, total=False):
     guardrail_report: GuardrailReport
     human_approved: bool
     human_approval_notes: str
+    patch_plan: PatchPlan | None
     final_decision: str
 
 
@@ -88,10 +91,6 @@ def human_approval_node(state: SafePatchState) -> dict:
     """
     Node 4:
     Asks the human whether the agent should continue toward patch planning.
-
-    For this beginner project, we use a simple terminal yes/no input.
-    In a production system, this would usually be a UI approval screen,
-    Slack approval, GitHub PR review, or ticket workflow.
     """
 
     issue = state["issue"]
@@ -161,21 +160,72 @@ def human_approval_node(state: SafePatchState) -> dict:
     }
 
 
-def final_decision_node(state: SafePatchState) -> dict:
+def generate_patch_plan_node(state: SafePatchState) -> dict:
     """
     Node 5:
-    Converts guardrail + human approval result into a final decision.
+    Generates a structured patch plan only if human approval was granted.
+
+    This node does NOT edit files.
+    """
+
+    issue = state["issue"]
+    finding = state["finding"]
+    chunks = state["retrieved_chunks"]
+    human_approved = state.get("human_approved", False)
+    guardrail_report = state["guardrail_report"]
+
+    if not guardrail_report.passed:
+        return {
+            "patch_plan": None
+        }
+
+    if not human_approved:
+        return {
+            "patch_plan": None
+        }
+
+    patch_plan = generate_patch_plan_structured(
+        issue=issue,
+        finding=finding,
+        retrieved_chunks=chunks
+    )
+
+    log_event(
+        event_type="patch_plan_generated",
+        payload={
+            "issue": issue,
+            "risk_level": patch_plan.risk_level,
+            "files_to_modify": [
+                file_change.file_path
+                for file_change in patch_plan.files_to_modify
+            ],
+            "approval_required": patch_plan.approval_required
+        }
+    )
+
+    return {
+        "patch_plan": patch_plan
+    }
+
+
+def final_decision_node(state: SafePatchState) -> dict:
+    """
+    Node 6:
+    Converts guardrail + human approval + patch plan status into a final decision.
     """
 
     guardrail_report = state["guardrail_report"]
     human_approved = state.get("human_approved", False)
+    patch_plan = state.get("patch_plan")
 
     if not guardrail_report.passed:
         decision = "BLOCKED_BY_GUARDRAILS"
-    elif human_approved:
-        decision = "APPROVED_FOR_PATCH_PLANNING"
-    else:
+    elif not human_approved:
         decision = "REJECTED_BY_HUMAN_REVIEW"
+    elif patch_plan is not None and patch_plan.can_generate_patch:
+        decision = "PATCH_PLAN_READY"
+    else:
+        decision = "PATCH_PLAN_NOT_AVAILABLE"
 
     return {
         "final_decision": decision
@@ -193,13 +243,15 @@ def build_safepatch_graph():
     graph.add_node("analyze_issue", analyze_issue_node)
     graph.add_node("run_guardrails", run_guardrails_node)
     graph.add_node("human_approval", human_approval_node)
+    graph.add_node("generate_patch_plan", generate_patch_plan_node)
     graph.add_node("final_decision", final_decision_node)
 
     graph.add_edge(START, "retrieve_context")
     graph.add_edge("retrieve_context", "analyze_issue")
     graph.add_edge("analyze_issue", "run_guardrails")
     graph.add_edge("run_guardrails", "human_approval")
-    graph.add_edge("human_approval", "final_decision")
+    graph.add_edge("human_approval", "generate_patch_plan")
+    graph.add_edge("generate_patch_plan", "final_decision")
     graph.add_edge("final_decision", END)
 
     return graph.compile()

@@ -77,3 +77,55 @@ class GuardrailReport(BaseModel):
     risk_level: Literal["low", "medium", "high"]
     checks: list[GuardrailCheck]
     blocked_reason: str | None = None
+
+
+class PatchFileChange(BaseModel):
+    """
+    Describes one file that the agent recommends changing.
+    """
+
+    file_path: str = Field(description="The file that should be modified.")
+    change_summary: str = Field(description="Short summary of the recommended change.")
+    reason: str = Field(description="Why this file needs to be changed.")
+    safety_notes: str = Field(description="Risks or precautions for this change.")
+
+
+class PatchPlan(BaseModel):
+    """
+    Structured patch plan generated after human approval.
+
+    This is not code editing yet.
+    This is only the plan for a future patch.
+    """
+
+    can_generate_patch: bool = Field(
+        description="Whether enough evidence exists to safely plan a patch."
+    )
+
+    files_to_modify: list[PatchFileChange] = Field(
+        description="Files that should be modified."
+    )
+
+    implementation_steps: list[str] = Field(
+        description="Step-by-step implementation plan."
+    )
+
+    tests_to_run: list[str] = Field(
+        description="Tests or validation commands that should be run."
+    )
+
+    risk_level: Literal["low", "medium", "high"] = Field(
+        description="Risk level of the proposed patch plan."
+    )
+
+    rollback_plan: str = Field(
+        description="How to safely roll back if the patch causes issues."
+    )
+
+    approval_required: bool = Field(
+        description="Whether another human approval is required before editing files."
+    )
+
+    non_goals: list[str] = Field(
+        description="Things the patch should not try to change."
+    )

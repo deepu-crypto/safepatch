@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from app.schemas import AgentFinding
+from app.schemas import AgentFinding, PatchPlan
 
 load_dotenv(dotenv_path="backend/.env")
 
@@ -36,10 +36,9 @@ Code:
 
 def analyze_issue_with_context(issue: str, retrieved_chunks: list[dict]) -> str:
     """
-    Older free-text analysis function.
+    Older free-text compatible function.
 
-    Kept for comparison, but our production-style flow should use
-    analyze_issue_with_context_structured().
+    Internally, it uses the structured result and returns JSON text.
     """
 
     structured_result = analyze_issue_with_context_structured(issue, retrieved_chunks)
@@ -75,7 +74,6 @@ Rules:
 - Evidence must reference file paths and line ranges from the provided context.
 - If the context is not enough, say that in limitations.
 - Prefer requiring human approval for code changes.
-- Do not touch .env file or docker-compose.yml file or requirements.txt or dockerfile files.
 """
 
     user_message = f"""
@@ -101,6 +99,75 @@ Return a structured investigation result.
             }
         ],
         text_format=AgentFinding
+    )
+
+    return response.output_parsed
+
+
+def generate_patch_plan_structured(
+    issue: str,
+    finding: AgentFinding,
+    retrieved_chunks: list[dict]
+) -> PatchPlan:
+    """
+    Generates a structured patch plan after guardrails and human approval.
+
+    This function does NOT edit files.
+    It only creates a safe implementation plan.
+    """
+
+    if not issue.strip():
+        raise ValueError("Issue cannot be empty.")
+
+    if not retrieved_chunks:
+        raise ValueError("No retrieved chunks provided.")
+
+    context_text = build_context_text(retrieved_chunks)
+
+    system_message = """
+You are a senior backend engineer creating a safe patch plan.
+
+You are NOT allowed to modify files.
+You are NOT allowed to generate a full code patch yet.
+You are only creating a structured implementation plan.
+
+Rules:
+- Use only the retrieved code context and structured finding.
+- Recommend the smallest safe change.
+- Do not suggest unrelated refactors.
+- Do not suggest deleting files.
+- Do not suggest disabling authentication or validation.
+- Include tests that should be run.
+- Include rollback plan.
+- Approval should still be required before actual file editing.
+"""
+
+    user_message = f"""
+Issue:
+{issue}
+
+Structured finding:
+{finding.model_dump_json(indent=2)}
+
+Retrieved code context:
+{context_text}
+
+Create a structured patch plan.
+"""
+
+    response = client.responses.parse(
+        model=OPENAI_LLM_MODEL,
+        input=[
+            {
+                "role": "system",
+                "content": system_message
+            },
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ],
+        text_format=PatchPlan
     )
 
     return response.output_parsed
